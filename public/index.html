@@ -236,14 +236,27 @@
       }
     });
 
+    // messageForm.addEventListener('submit', (e) => {
+    //   e.preventDefault();
+    //   const msg = messageInput.value.trim();
+    //   if (msg && loggedIn) {
+    //     ws.send('MSG ' + msg);
+    //     messageInput.value = '';
+    //   }
+    // });
     messageForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const msg = messageInput.value.trim();
-      if (msg && loggedIn) {
-        ws.send('MSG ' + msg);
-        messageInput.value = '';
-      }
-    });
+  e.preventDefault();
+  const msg = messageInput.value.trim();
+  if (msg && loggedIn) {
+    ws.send('MSG ' + msg);
+
+    // ✅ Instantly show your own message locally
+    log(`<strong>You</strong>: ${msg}\n`);
+
+    messageInput.value = '';
+  }
+});
+
   </script>
 </body>
 </html>
