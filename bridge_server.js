@@ -18,14 +18,8 @@ const PORT = process.env.PORT || 8080;
 // ✅ TCP Server Configuration
 // If running both servers on Render, keep 'localhost'.
 // If TCP server is deployed separately, replace with its Render URL/hostname.
-
-//deploy before
-
-// const TCP_SERVER_HOST = 'localhost';
-
-const TCP_SERVER_HOST = 'chat-app-algokart-1.onrender.com';
-
-const TCP_SERVER_PORT = process.env.TCP_PORT || 10000;
+const TCP_SERVER_HOST = 'localhost';
+const TCP_SERVER_PORT = process.env.TCP_PORT || 4000;
 
 // 🧩 Bridge connections between WebSocket clients and TCP server
 wss.on('connection', (ws) => {
