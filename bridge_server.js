@@ -1,3 +1,44 @@
+// const express = require('express');
+// const http = require('http');
+// const WebSocket = require('ws');
+// const net = require('net');
+// const path = require('path');
+
+// const app = express();
+// const server = http.createServer(app);
+// const wss = new WebSocket.Server({ server });
+
+// app.use(express.static(path.join(__dirname, 'public')));
+
+// wss.on('connection', (ws) => {
+//   const tcpClient = new net.Socket();
+
+//   // Connect to TCP server
+//   tcpClient.connect(4000, '127.0.0.1', () => {
+//     console.log('🔗 Connected to TCP chat server');
+//   });
+
+//   // When data comes from TCP server → send to browser
+//   tcpClient.on('data', (data) => {
+//     ws.send(data.toString());
+//   });
+
+//   // When browser sends message → forward to TCP server
+//   ws.on('message', (msg) => {
+//     const clean = msg.toString().trim();
+//     if (clean.length > 0) {
+//       tcpClient.write(clean + '\n'); // ✅ ensure newline
+//     }
+//   });
+
+//   ws.on('close', () => tcpClient.destroy());
+//   tcpClient.on('error', (err) => console.log('TCP Error:', err.message));
+// });
+
+// server.listen(8080, () =>
+//   console.log('🌐 Bridge server running on http://localhost:8080')
+// );
+// ✅ bridge_server.js
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -8,33 +49,52 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+// ✅ Serve static frontend files (index.html, CSS, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
-wss.on('connection', (ws) => {
-  const tcpClient = new net.Socket();
+// ✅ Use Render’s dynamic port OR fallback
+const PORT = process.env.PORT || 8080;
 
-  // Connect to TCP server
-  tcpClient.connect(4000, '127.0.0.1', () => {
-    console.log('🔗 Connected to TCP chat server');
+// ✅ TCP Server Configuration
+// If running both servers on Render, keep 'localhost'.
+// If TCP server is deployed separately, replace with its Render URL/hostname.
+const TCP_SERVER_HOST = 'localhost';
+const TCP_SERVER_PORT = process.env.TCP_PORT || 4000;
+
+// 🧩 Bridge connections between WebSocket clients and TCP server
+wss.on('connection', (ws) => {
+  console.log('🌐 WebSocket Client Connected');
+
+  const tcpSocket = new net.Socket();
+  tcpSocket.connect(TCP_SERVER_PORT, TCP_SERVER_HOST, () => {
+    console.log('🔗 Connected to TCP Chat Server');
+    ws.send('Connected to Bridge Server\n');
   });
 
-  // When data comes from TCP server → send to browser
-  tcpClient.on('data', (data) => {
+  tcpSocket.on('data', (data) => {
     ws.send(data.toString());
   });
 
-  // When browser sends message → forward to TCP server
-  ws.on('message', (msg) => {
-    const clean = msg.toString().trim();
-    if (clean.length > 0) {
-      tcpClient.write(clean + '\n'); // ✅ ensure newline
-    }
+  tcpSocket.on('close', () => {
+    ws.send('Disconnected from TCP Server\n');
   });
 
-  ws.on('close', () => tcpClient.destroy());
-  tcpClient.on('error', (err) => console.log('TCP Error:', err.message));
+  tcpSocket.on('error', (err) => {
+    console.error('TCP Error:', err.message);
+    ws.send('Error connecting to TCP Server\n');
+  });
+
+  ws.on('message', (msg) => {
+    tcpSocket.write(msg.toString() + '\n');
+  });
+
+  ws.on('close', () => {
+    tcpSocket.end();
+    console.log('🔻 WebSocket Client Disconnected');
+  });
 });
 
-server.listen(8080, () =>
-  console.log('🌐 Bridge server running on http://localhost:8080')
-);
+// ✅ Start Bridge Server
+server.listen(PORT, () => {
+  console.log(`🌐 Bridge Server running on port ${PORT}`);
+});
