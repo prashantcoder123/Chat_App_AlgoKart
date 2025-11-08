@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>TCP Chat AlgoKart</title>
   <style>
     /* 🌙 Page Layout */
@@ -150,8 +150,8 @@
       <p>Enter your username to join the chat:</p>
       <div id="error"></div>
       <form id="usernameForm">
-        <input type="text" id="username" placeholder="Username" required>
-        <input type="submit" value="Login">
+        <input type="text" id="username" placeholder="Username" required />
+        <input type="submit" value="Login" />
       </form>
     </div>
 
@@ -160,16 +160,18 @@
       <div id="chatWrapper">
         <div id="chatWindow"></div>
         <form id="messageForm">
-          <input type="text" id="message" placeholder="Type a message..." autocomplete="off">
-          <input type="submit" value="Send">
+          <input type="text" id="message" placeholder="Type a message..." autocomplete="off" />
+          <input type="submit" value="Send" />
         </form>
       </div>
     </div>
   </div>
 
   <script>
-    
-    const ws = new WebSocket('ws://localhost:8080');
+    // 🌐 Dynamic WebSocket URL (works locally + on deployment)
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(protocol + '//' + location.host);
+
     let loggedIn = false;
     let username = '';
 
@@ -180,12 +182,13 @@
     const chatWindow = document.getElementById('chatWindow');
     const errorDiv = document.getElementById('error');
 
-    ws.onopen = () => log('Connected to Bridge Server\n');
+    ws.onopen = () => log('<span class="info">Connected to Bridge Server</span>\n');
     ws.onmessage = (event) => handleServerMessage(event.data);
-    ws.onerror = (err) => log('<span class="err">WebSocket error</span>\n');
+    ws.onerror = (err) => log('<span class="err">⚠️ WebSocket error</span>\n');
+    ws.onclose = () => log('<span class="err">❌ Connection closed</span>\n');
 
     function handleServerMessage(data) {
-      data.split('\n').forEach(line => {
+      data.split('\n').forEach((line) => {
         if (!line.trim()) return;
 
         if (line.includes('OK') && !loggedIn) {
