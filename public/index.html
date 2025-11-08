@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TCP ChatIO</title>
+  <style>
+    /* 🌙 Page Layout */
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #141e30, #243b55);
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    #container {
+      width: 720px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+
+    /* 🔐 Login Box */
+    #namesWrapper {
+      text-align: center;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      color: #00ffcc;
+      letter-spacing: 1px;
+    }
+
+    #error {
+      color: #ff6b6b;
+      margin-top: 5px;
+    }
+
+    input[type="text"] {
+      height: 35px;
+      border: none;
+      border-radius: 8px;
+      padding: 0 10px;
+      margin-right: 10px;
+      outline: none;
+      width: 220px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    input[type="submit"] {
+      background: #00ffcc;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    input[type="submit"]:hover {
+      background: #00ffaa;
+    }
+
+    /* 💬 Chat Window */
+    #mainWrapper {
+      display: none;
+    }
+
+    #chatWrapper {
+      margin-top: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+    }
+
+    #chatWindow {
+      height: 300px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px;
+      border-radius: 8px;
+      font-family: "Consolas", monospace;
+      font-size: 15px;
+      color: #e0e0e0;
+      white-space: pre-wrap;
+    }
+
+    /* Message input */
+    #messageForm {
+      display: flex;
+      margin-top: 10px;
+      gap: 8px;
+    }
+
+    #message {
+      flex: 1;
+      border-radius: 8px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #fff;
+      outline: none;
+    }
+
+    #message::placeholder {
+      color: #aaa;
+    }
+
+    #messageForm input[type="submit"] {
+      background: #00ffcc;
+      color: #000;
+      font-weight: bold;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #messageForm input[type="submit"]:hover {
+      background: #00ffaa;
+    }
+
+    /* ✨ Message Colors */
+    strong {
+      color: #00ffcc;
+    }
+    .info {
+      color: #ffaa00;
+    }
+    .err {
+      color: #ff6b6b;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="namesWrapper">
+      <h2>💬 TCP Chat AlgoKart</h2>
+      <p>Enter your username to join the chat:</p>
+      <div id="error"></div>
+      <form id="usernameForm">
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="submit" value="Login">
+      </form>
+    </div>
+
+    <div id="mainWrapper">
+      <h2>💬 TCP Chat AlgoKart</h2>
+      <div id="chatWrapper">
+        <div id="chatWindow"></div>
+        <form id="messageForm">
+          <input type="text" id="message" placeholder="Type a message..." autocomplete="off">
+          <input type="submit" value="Send">
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:8080');
+    let loggedIn = false;
+    let username = '';
+
+    const usernameForm = document.getElementById('usernameForm');
+    const usernameInput = document.getElementById('username');
+    const messageForm = document.getElementById('messageForm');
+    const messageInput = document.getElementById('message');
+    const chatWindow = document.getElementById('chatWindow');
+    const errorDiv = document.getElementById('error');
+
+    ws.onopen = () => log('Connected to Bridge Server\n');
+    ws.onmessage = (event) => handleServerMessage(event.data);
+    ws.onerror = (err) => log('<span class="err">WebSocket error</span>\n');
+
+    function handleServerMessage(data) {
+      data.split('\n').forEach(line => {
+        if (!line.trim()) return;
+
+        if (line.includes('OK') && !loggedIn) {
+          loggedIn = true;
+          document.getElementById('namesWrapper').style.display = 'none';
+          document.getElementById('mainWrapper').style.display = 'block';
+          log(`<span class="info">✅ Logged in as ${username}</span>\n`);
+        } else if (line.startsWith('ERR')) {
+          errorDiv.textContent = line;
+        } else {
+          log(formatMessage(line) + '\n');
+        }
+      });
+    }
+
+    function formatMessage(line) {
+      if (line.startsWith('MSG ')) {
+        const parts = line.split(' ');
+        const sender = parts[1];
+        const text = parts.slice(2).join(' ');
+        return `<strong>${sender}</strong>: ${text}`;
+      }
+      if (line.startsWith('INFO ')) {
+        const parts = line.split(' ');
+        const user = parts[1];
+        const infoText = parts.slice(2).join(' ');
+        return `<span class="info">INFO <strong>${user}</strong> ${infoText}</span>`;
+      }
+      if (line.startsWith('ERR')) {
+        return `<span class="err">${line}</span>`;
+      }
+      return line;
+    }
+
+    function log(message) {
+      chatWindow.innerHTML += message.replace(/\r?\n/g, '<br>') + '<br>';
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    usernameForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      username = usernameInput.value.trim();
+      if (username) {
+        ws.send('LOGIN ' + username);
+      }
+    });
+
+    messageForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const msg = messageInput.value.trim();
+      if (msg && loggedIn) {
+        ws.send('MSG ' + msg);
+        messageInput.value = '';
+      }
+    });
+  </script>
+</body>
+</html>
